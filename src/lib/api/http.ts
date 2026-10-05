@@ -103,7 +103,7 @@ export interface Handler<Body> {
   (request: Request, payload: Body, context: ApiContext): Promise<Response> | Response;
 }
 
-type NextRouteContext = { params?: Promise<Record<string, string>> };
+type NextRouteContext = { params: Promise<Record<string, string>> };
 
 /**
  * Wraps a route handler with the platform's security floor.
@@ -112,10 +112,12 @@ type NextRouteContext = { params?: Promise<Record<string, string>> };
  * dynamic-params argument that Next passes to nested routes.
  */
 export function route<Body = undefined>(options: RouteOptions<Body>, handler: Handler<Body>) {
-  return async function wrapped(request: Request, routeContext?: NextRouteContext) {
+  // The second argument is required so the signature matches the App Router's
+  // own RouteContext check; `params` inside it is optional for static routes.
+  return async function wrapped(request: Request, routeContext: NextRouteContext) {
     try {
       const url = new URL(request.url);
-      const rawPath = routeContext?.params ? await routeContext.params.catch(() => ({})) : {};
+      const rawPath = await Promise.resolve(routeContext?.params).catch(() => ({} as Record<string, string>));
       const dynamic = Object.values(rawPath ?? {}).join("/");
 
       let session: SessionContext | null = null;
@@ -170,10 +172,9 @@ export function route<Body = undefined>(options: RouteOptions<Body>, handler: Ha
 }
 
 /** Resolves the dynamic segment values Next passes into a route handler. */
-export async function paramsOf(routeContext?: NextRouteContext): Promise<Record<string, string>> {
-  if (!routeContext?.params) return {};
+export async function paramsOf(routeContext: NextRouteContext): Promise<Record<string, string>> {
   try {
-    return await routeContext.params;
+    return (await routeContext?.params) ?? {};
   } catch {
     return {};
   }
