@@ -84,7 +84,8 @@ export interface LeadScoreResult {
   nextAction: string;
 }
 
-const clamp = (n: number) => Math.max(0, Math.min(100, Math.round(n)));
+/** Rounds into 0–100. Non-finite input degrades to 0 rather than poisoning a score. */
+const clamp = (n: number) => (Number.isFinite(n) ? Math.max(0, Math.min(100, Math.round(n))) : 0);
 
 /** Industries where a modern website converts particularly well. */
 const HIGH_VALUE_INDUSTRIES: Record<string, number> = {

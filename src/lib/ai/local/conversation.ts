@@ -31,6 +31,8 @@ const INTENT_SIGNALS: IntentSignal[] = [
   { pattern: /\b(?:book|schedule|arrange) (?:a |the )?(?:call|meeting|chat|consultation|appointment|demo)\b/i, intent: "wants_call", weight: 30, meaning: "Requesting a meeting or call" },
   { pattern: /\bwhat(?:'s| is| would) (?:the |your )?(?:cost|price|pricing|budget|how much)\b/i, intent: "wants_pricing", weight: 26, meaning: "Asking about price" },
   { pattern: /\bhow much (?:would|does|do|will)\b/i, intent: "wants_pricing", weight: 26, meaning: "Asking about cost" },
+  { pattern: /\b(?:what|how much)[\w\s'’,-]{0,28}?(?:cost|price|pricing|charge|budget|fees?)\b/i, intent: "wants_pricing", weight: 24, meaning: "Asking about cost" },
+  { pattern: /\bbudget (?:is|would be|of|around)\b/i, intent: "wants_pricing", weight: 20, meaning: "Discussing budget" },
   { pattern: /\b(?:can|could) (?:you|we) (?:see|get) (?:a )?(?:demo|example|sample|mockup|preview|portfolio)\b/i, intent: "wants_demo", weight: 24, meaning: "Requesting examples or a demo" },
   { pattern: /\b(?:show|send) (?:me|us) (?:some |a few )?(?:examples|work|portfolio|case stud|sample)\b/i, intent: "wants_demo", weight: 22, meaning: "Requesting proof of work" },
   { pattern: /\bhow long (?:would|does|will|do) (?:it|this|that|the project)? ?(?:take|last)\b/i, intent: "high_intent", weight: 22, meaning: "Asking about timeline — a late-stage buying question" },
@@ -44,7 +46,7 @@ const INTENT_SIGNALS: IntentSignal[] = [
   { pattern: /\bdo you (?:also|offer)\b/i, intent: "information_seeking", weight: 10, meaning: "Exploring scope" },
   { pattern: /\b(?:can|could) you (?:tell|explain|clarify)\b/i, intent: "information_seeking", weight: 8, meaning: "Seeking information" },
   { pattern: /\b(?:tell me more|more (?:info|information|details)|interested to (?:hear|learn)|sounds interesting)\b/i, intent: "curious", weight: 10, meaning: "Curiosity — top of funnel" },
-  { pattern: /\b(?:who are you|is this (?:a )?(?:bot|robot|ai|automated)|are you (?:a )?(?:human|real|bot|ai))\b/i, intent: "curious", weight: 4, meaning: "Checking whether they are talking to a person" },
+  { pattern: /\b(?:who are you|is this (?:an? )?(?:real )?(?:person|human|bot|robot|ai|automated|machine)|are you (?:an? )?(?:real |actual )?(?:person|human|bot|robot|ai|automated|machine)|am i (?:talking|speaking) to (?:an? )?(?:person|human|bot|ai))\b/i, intent: "curious", weight: 4, meaning: "Checking whether they are talking to a person" },
   { pattern: /\bno thanks\b|\bnot interested\b|\bnot for us\b|\bplease stop\b|\bunsubscribe\b|\bdon'?t contact\b|\bremove me\b/i, intent: "not_interested", weight: -30, meaning: "Explicit decline or opt-out request" },
   { pattern: /\bwe already have (?:a|our own|an) \w+/i, intent: "not_interested", weight: -14, meaning: "Already has a supplier" },
   { pattern: /\btoo expensive\b|\bcan'?t afford\b|\bno budget\b|\bbudget is (?:tight|not there)\b/i, intent: "not_interested", weight: -12, meaning: "Budget blocker" },
@@ -200,8 +202,12 @@ export function localChatReply(utterance: string, ctx: ChatContext): ChatReply {
   const raw = composeReply({ utterance, intent, ctx, profile, topFinding, questionsAsked, firstTurn });
   const guarded = applyGuardrails(raw, { applyToneRules: true });
 
+  // Asking whether they are talking to a person is itself a reason to offer one.
+  const asksAboutBeingHuman = /\b(?:who are you|is this (?:an? )?(?:real )?(?:person|human|bot|robot|ai|automated|machine)|are you (?:an? )?(?:real |actual )?(?:person|human|bot|robot|ai|automated|machine)|am i (?:talking|speaking) to (?:an? )?(?:person|human|bot|ai)|real person)\b/i.test(utterance);
+
   const handoffRecommended =
     intent.shouldEscalate ||
+    asksAboutBeingHuman ||
     intent.intent === "ready_to_start" ||
     intent.intent === "wants_call" ||
     intent.intent === "not_interested" ||

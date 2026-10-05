@@ -20,6 +20,10 @@ const FABRICATION_PATTERNS: { pattern: RegExp; flag: string; replacement: string
   { pattern: /\byou (?:are|'re) losing (?:about |approximately |around )?£?[\d,]+/gi, flag: "fabricated-loss-figure", replacement: "enquiries are likely being lost" },
   { pattern: /\bguarantee(?:d)? (?:first[- ]page|#1|number one|top) ranking/gi, flag: "guaranteed-ranking", replacement: "improved search foundations" },
   { pattern: /\b(?:100%|fully) guaranteed results?\b/gi, flag: "guaranteed-results", replacement: "measurable improvement" },
+  { pattern: /\b(?:we|our (?:ai|team|platform|system|software))?\s*(?:will|can|shall)?\s*guarantee(?:d|s)?\s*(?:you|us)?\s*/gi, flag: "guaranteed-outcome", replacement: "work towards " },
+  { pattern: /\blimited[- ]time (?:offer|deal|discount)\b/gi, flag: "manufactured-urgency", replacement: "current availability" },
+  { pattern: /\b(?:act|move|respond) (?:fast|quickly|now)\b/gi, flag: "manufactured-urgency", replacement: "get in touch" },
+  { pattern: /\b\d+\s*% more (?:leads|customers|sales|revenue|traffic)\b/gi, flag: "unverifiable-projection", replacement: "more enquiries" },
   { pattern: /\b(?:we|our team) (?:found|discovered) (?:that )?you (?:don'?t|do not) have (?:any )?(?:customers|clients|reviews)\b/gi, flag: "fabricated-detail", replacement: "your public review presence could be strengthened" },
   { pattern: /\b(?:we )?(?:have|'ve) (?:already )?spoken (?:to|with) (?:your )?(?:team|staff|owner)\b/gi, flag: "fabricated-history", replacement: "we would welcome a conversation" },
   { pattern: /\b(?:act|respond) (?:now|immediately|today) or (?:the|this) (?:offer|price|slot) (?:expires|is gone)\b/gi, flag: "manufactured-urgency", replacement: "we have availability this month if you would like to talk" },
@@ -112,7 +116,8 @@ export function verifyClaims(text: string, evidence: string[]): { unsupported: s
     const assertsMeasurement =
       /\b\d+\s*(ms|kb|mb|%|seconds?|score|px)\b/.test(lower) ||
       /\b(no |missing |without )(meta description|viewport|h1|title tag|alt text|analytics|ssl|https|contact form|booking)\b/.test(lower) ||
-      /\b(scores?|scoring) \d{1,3}\b/.test(lower);
+      /\b(scores?|scoring) \d{1,3}\b/.test(lower) ||
+      /\b\d+(?:\.\d+)?\s*(?:stars?|reviews?|ratings?|locations?|years?)\b/.test(lower);
     if (!assertsMeasurement) return;
     checkedClaims += 1;
 

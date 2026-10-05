@@ -1,6 +1,8 @@
 import "server-only";
 
 import { addJobLog, claimNextJob, completeJob, enqueueJob, failJob, getJob, updateJobProgress } from "../db/repo/ops";
+import { getDb } from "../db";
+import { loadHandlers, scheduleRecurringWork } from "../jobs/handlers";
 import type { Job } from "../db/repo/types";
 import type { JobType } from "../types";
 import { logger } from "../logger";
@@ -138,7 +140,6 @@ export function retryJob(jobId: string): boolean {
   if (!job) return false;
   if (!["failed", "cancelled"].includes(job.status)) return false;
   updateJobProgress(jobId, 0, "Re-queued");
-  const { getDb } = require("../db") as typeof import("../db");
   getDb().prepare("UPDATE jobs SET status = 'queued', error = NULL, completed_at = NULL, scheduled_at = ? WHERE id = ?").run(
     new Date().toISOString(),
     jobId,
@@ -157,8 +158,6 @@ const globalForWorker = globalThis as unknown as { __leadforgeWorker?: { timer: 
 export function startWorker(intervalMs = 2500): void {
   if (globalForWorker.__leadforgeWorker) return;
 
-  // Ensure handlers are registered before the first tick.
-  const { loadHandlers, scheduleRecurringWork } = require("../jobs/handlers") as typeof import("../jobs/handlers");
   loadHandlers();
 
   const tick = async () => {

@@ -1,7 +1,7 @@
 import "server-only";
 
 import { registerHandler, schedule, type JobHandler } from "../queue";
-import { businessIdsWithLeads, getLead, listLeads, saveLeadScore } from "../db/repo/lead";
+import { businessIdsWithLeads, getLead, leadsNeedingFollowUp, listLeads, saveLeadScore } from "../db/repo/lead";
 import { createBusiness, getBusiness, latestAuditForBusiness, listContacts, businessesNeedingAudit, updateBusiness } from "../db/repo/business";
 import { listCampaigns, addCampaignRecipient, listCampaignRecipients } from "../db/repo/engagement";
 import { createNotification, getSetting, listJobs, setSetting } from "../db/repo/ops";
@@ -583,7 +583,6 @@ export function scheduleRecurringWork(): { scheduled: string[]; skipped: string[
   }
 
   // Follow-up reminders for leads whose next action is overdue.
-  const { leadsNeedingFollowUp } = require("../db/repo/lead") as typeof import("../db/repo/lead");
   const due = leadsNeedingFollowUp(org.id, 20);
   for (const lead of due) {
     const existing = listJobs(org.id, { status: ["queued"], limit: 200 }).items.some(

@@ -2,7 +2,7 @@ import "server-only";
 
 import { analyticsSummary, nextBestActions, rangeFor } from "../db/repo/analytics";
 import { listLeads, leadsNeedingFollowUp, leadStatusCounts } from "../db/repo/lead";
-import { listTasks, taskCounts, listNotifications, unreadNotificationCount, jobStats, listAlertRules } from "../db/repo/ops";
+import { listTasks, taskCounts, listNotifications, unreadNotificationCount, jobStats, listAlertRules, listJobs } from "../db/repo/ops";
 import { listConversations } from "../db/repo/engagement";
 import { getOrganization } from "../db/repo/org";
 import { stalledLeads } from "./pipeline";
@@ -371,7 +371,6 @@ export function relativeTime(iso: string): string {
 
 /** Scheduled work that will run in the next 24 hours — from the job queue, not invented. */
 export function upcomingJobs(): { type: string; label: string; scheduledAt: string; status: string }[] {
-  const { listJobs } = require("../db/repo/ops") as typeof import("../db/repo/ops");
   return listJobs("", { status: ["queued", "retrying", "running"], limit: 10 }).items.map((job) => ({
     type: job.type,
     label: job.label ?? job.type,

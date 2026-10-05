@@ -155,7 +155,7 @@ export function sampleListings(query: {
 
   while (results.length < limit && cursor < limit * 6) {
     const template = templates[cursor % templates.length];
-    const location = cities[Math.floor(cursor / templates.length) % cities.length];
+    const location = cities[Math.floor(cursor / 2) % cities.length];
     const seed = `${template.industry}|${location.city}`;
     const index = Math.floor(cursor / (templates.length * cities.length)) + Math.floor(cursor / templates.length);
 

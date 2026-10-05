@@ -287,7 +287,7 @@ export function analyticsSummary(orgId: string, range: AnalyticsRange): Analytic
             l.next_action, l.estimated_value, l.currency,
             (SELECT a.findings_json FROM website_audits a WHERE a.business_id = b.id AND a.status = 'complete' ORDER BY a.created_at DESC LIMIT 1) AS findings_json
      FROM leads l JOIN businesses b ON b.id = l.business_id
-     WHERE l.org_id = ? AND l.status NOT IN ('won','lost','not_interested') AND l.opted_out_check IS NULL
+     WHERE l.org_id = ? AND l.status NOT IN ('won','lost','not_interested') AND l.opt_out = 0
      ORDER BY COALESCE(l.lead_score,0) DESC, COALESCE(l.opportunity_score,0) DESC LIMIT 8`,
     [orgId],
   ).map((row) => {

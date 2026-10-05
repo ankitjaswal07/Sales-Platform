@@ -137,3 +137,47 @@ export function parseJson<T>(value: unknown, fallback: T): T {
 export function toBool(value: unknown): boolean {
   return value === 1 || value === true || value === "1";
 }
+
+export interface DatabaseStatus {
+  healthy: boolean;
+  driver: string;
+  file: string | null;
+  sizeBytes: number;
+  wal: boolean;
+  foreignKeys: boolean;
+  schemaVersion: number;
+  error: string | null;
+}
+
+/** Used by the Diagnostics screen — reports the real state of the connection. */
+export function databaseStatus(): DatabaseStatus {
+  try {
+    const db = getDb();
+    const file = resolveDatabasePath();
+    const size = fs.existsSync(file) ? fs.statSync(file).size : 0;
+    const journal = db.pragma("journal_mode", { simple: true }) as string;
+    const fk = db.pragma("foreign_keys", { simple: true }) as number;
+    const version = db.prepare("SELECT value FROM meta WHERE key = 'schema_version'").get() as { value: string } | undefined;
+    return {
+      healthy: true,
+      driver: "better-sqlite3",
+      file,
+      sizeBytes: size,
+      wal: journal === "wal",
+      foreignKeys: fk === 1,
+      schemaVersion: Number(version?.value ?? 0),
+      error: null,
+    };
+  } catch (error) {
+    return {
+      healthy: false,
+      driver: "better-sqlite3",
+      file: null,
+      sizeBytes: 0,
+      wal: false,
+      foreignKeys: false,
+      schemaVersion: SCHEMA_VERSION,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
