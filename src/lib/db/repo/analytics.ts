@@ -55,7 +55,7 @@ export function analyticsSummary(orgId: string, range: AnalyticsRange): Analytic
   const newThisMonth = count("SELECT COUNT(*) AS c FROM leads WHERE org_id = ? AND created_at >= datetime('now','-30 days')", [orgId]);
   const uncontacted = count("SELECT COUNT(*) AS c FROM leads WHERE org_id = ? AND last_contacted_at IS NULL AND status NOT IN ('won','lost')", [orgId]);
   const followedUpDue = count(
-    "SELECT COUNT(*) AS c FROM leads WHERE org_id = ? AND next_follow_up_at IS NOT NULL AND next_follow_up_at <= datetime('now') AND status NOT IN ('won','lost')",
+    "SELECT COUNT(*) AS c FROM leads WHERE org_id = ? AND next_follow_up_at IS NOT NULL AND next_follow_up_at <= now_iso() AND status NOT IN ('won','lost')",
     [orgId],
   );
 
@@ -421,7 +421,7 @@ export function nextBestActions(orgId: string): { label: string; detail: string;
     [orgId],
   );
   const followUpsDue = count(
-    "SELECT COUNT(*) AS c FROM leads WHERE org_id = ? AND next_follow_up_at IS NOT NULL AND next_follow_up_at <= datetime('now') AND status NOT IN ('won','lost')",
+    "SELECT COUNT(*) AS c FROM leads WHERE org_id = ? AND next_follow_up_at IS NOT NULL AND next_follow_up_at <= now_iso() AND status NOT IN ('won','lost')",
     [orgId],
   );
   const unscored = count("SELECT COUNT(*) AS c FROM leads WHERE org_id = ? AND lead_score IS NULL", [orgId]);

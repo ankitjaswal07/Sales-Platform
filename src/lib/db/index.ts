@@ -30,6 +30,13 @@ function openDatabase(): SqliteDb {
   db.pragma("foreign_keys = ON");
   db.pragma("busy_timeout = 8000");
   db.pragma("synchronous = NORMAL");
+
+  // Timestamps are stored as ISO-8601 strings ("2026-10-05T18:13:45.952Z").
+  // SQLite's own datetime('now') returns a space-separated string, which sorts
+  // before any ISO value and silently breaks "due now?" comparisons, so every
+  // query asks this function instead and the formats always match.
+  db.function("now_iso", () => new Date().toISOString());
+
   db.exec(SCHEMA_SQL);
 
   const current = db.prepare("SELECT value FROM meta WHERE key = 'schema_version'").get() as

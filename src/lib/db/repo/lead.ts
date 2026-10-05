@@ -185,7 +185,7 @@ function buildLeadWhere(orgId: string, filter: LeadFilter): { where: string; par
   if (filter.minReviews !== undefined) { clauses.push("COALESCE(b.review_count,0) >= ?"); params.push(filter.minReviews); }
   if (filter.maxReviews !== undefined) { clauses.push("COALESCE(b.review_count,0) <= ?"); params.push(filter.maxReviews); }
   if (filter.notContacted) clauses.push("l.last_contacted_at IS NULL");
-  if (filter.followUpDue) clauses.push("l.next_follow_up_at IS NOT NULL AND l.next_follow_up_at <= datetime('now')");
+  if (filter.followUpDue) clauses.push("l.next_follow_up_at IS NOT NULL AND l.next_follow_up_at <= now_iso()");
   if (filter.overdueBefore) { clauses.push("l.next_follow_up_at IS NOT NULL AND l.next_follow_up_at < ?"); params.push(filter.overdueBefore); }
   if (filter.websiteStatus?.length) {
     clauses.push(`b.website_status IN (${filter.websiteStatus.map(() => "?").join(",")})`);

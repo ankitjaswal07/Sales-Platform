@@ -13,13 +13,17 @@ import { localChatReply, detectIntent } from "../src/lib/ai/local/conversation.t
 import { interpretCommand } from "../src/lib/ai/local/command.ts";
 import { sampleListings, SAMPLE_INDUSTRIES, SAMPLE_CITIES } from "../src/lib/services/sample-data.ts";
 import fs from "node:fs";
+import { getPrimaryOrganization } from "../src/lib/db/repo/org.ts";
+import { getJob, jobStats, listAlertRules, listIntegrations, listJobLogs } from "../src/lib/db/repo/ops.ts";
+import { loadHandlers, handlerCatalogue, scheduleRecurringWork, scheduledJobsTonight } from "../src/lib/jobs/handlers.ts";
+import { registeredTypes, runPendingJobs, schedule } from "../src/lib/queue/index.ts";
+import { diagnostics } from "../src/lib/services/observability.ts";
 import path from "node:path";
 import { getDb } from "../src/lib/db/index.ts";
 import { seedDemoData } from "../src/lib/db/seed.ts";
 import { listLeads } from "../src/lib/db/repo/lead.ts";
 import { analyticsSummary, rangeFor, nextBestActions } from "../src/lib/db/repo/analytics.ts";
 import { listStages } from "../src/lib/db/repo/org.ts";
-import { getPrimaryOrganization } from "../src/lib/db/repo/org.ts";
 
 let passed = 0;
 const failures: string[] = [];
@@ -240,6 +244,56 @@ section("Database and repositories");
     const actions = nextBestActions(org.id);
     check("next-best-action cards only appear when they have a count", actions.every((action) => action.count > 0));
   }
+}
+
+section("Queue and background jobs");
+{
+  const org = getPrimaryOrganization()!;
+  const lead = listLeads(org.id, { limit: 1 }).items[0];
+
+  loadHandlers();
+  check("all job handlers register", registeredTypes().length === 14, `${registeredTypes().length} registered`);
+
+  // Recurring work queues real jobs (stale-site re-audits, refreshes). Drain the
+  // queue first so the assertions below are unambiguous about what ran.
+  const recurring = scheduleRecurringWork();
+  check("recurring work is registered", recurring.scheduled.length > 0, `${recurring.scheduled.length} schedules`);
+  check("tonight's schedule is readable", scheduledJobsTonight().length > 0);
+
+  const queued = schedule({ orgId: org.id, type: "scoring", payload: { leadIds: [lead.id] }, label: "Re-score one lead" });
+
+  let rounds = 0;
+  let processedTotal = 0;
+  while (rounds < 40) {
+    const processed = await runPendingJobs(4);
+    if (processed === 0) break;
+    processedTotal += processed;
+    rounds += 1;
+  }
+
+  const job = getJob(org.id, queued.id)!;
+  check("queued work is picked up by the worker", processedTotal > 0, `${processedTotal} job(s) processed`);
+  check("the job completes and reports progress", job.status === "succeeded" && job.progress >= 95, `${job.status} at ${job.progress}%`);
+  check("job logs are written", listJobLogs(job.id).length > 0);
+
+  const other = schedule({ orgId: org.id, type: "notification", payload: { leadId: lead.id } });
+  while ((await runPendingJobs(4)) > 0) {
+    /* drain */
+  }
+  check("a second job type also processes", getJob(org.id, other.id)?.status === "succeeded", getJob(org.id, other.id)?.error ?? "");
+
+  // Work that fails must be retained and retried with backoff, never dropped.
+  const broken = schedule({ orgId: org.id, type: "proposal", payload: { nonsense: true } });
+  while ((await runPendingJobs(4)) > 0) {
+    /* drain */
+  }
+  const brokenJob = getJob(org.id, broken.id)!;
+  check("failed work is queued for retry, not dropped", brokenJob.status === "queued" || brokenJob.status === "retrying", `${brokenJob.status}, attempt ${brokenJob.attempts}`);
+  check("failures record a readable reason", Boolean(brokenJob.error), brokenJob.error ?? "no error stored");
+
+  check("every job type is documented", handlerCatalogue().length === 14);
+  const stats = jobStats(org.id);
+  check("job statistics count everything that ran", stats.succeeded >= 4, JSON.stringify(stats));
 }
 
 console.log(`\n${passed} check${passed === 1 ? "" : "s"} passed, ${failures.length} failed.`);

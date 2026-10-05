@@ -958,7 +958,7 @@ export function dueCampaignRecipients(limit: number): { id: string; campaignId: 
     `SELECT r.id, r.campaign_id, r.business_id, r.contact_id, r.step, r.lead_id
      FROM campaign_recipients r JOIN campaigns c ON c.id = r.campaign_id
      WHERE r.state IN ('pending','scheduled') AND c.status = 'active'
-       AND (r.next_send_at IS NULL OR r.next_send_at <= datetime('now'))
+       AND (r.next_send_at IS NULL OR r.next_send_at <= now_iso())
      ORDER BY COALESCE(r.next_send_at, r.created_at) ASC LIMIT ?`,
     [limit],
   ).map((row) => ({

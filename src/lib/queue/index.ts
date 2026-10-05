@@ -74,18 +74,26 @@ export function schedule(input: {
 
 const running = new Set<string>();
 
+/**
+ * Claims up to `max` queued jobs and runs them to completion.
+ *
+ * Resolves once every claimed job has finished, so callers (the worker tick,
+ * the CLI, tests) always see a settled queue rather than fire-and-forget work.
+ */
 export async function runPendingJobs(max = 3): Promise<number> {
   const concurrency = Math.min(Number(process.env.WORKER_CONCURRENCY ?? 3), 8);
-  let processed = 0;
+  const inflight: Promise<void>[] = [];
 
   for (let i = 0; i < max; i += 1) {
-    if (running.size >= concurrency) break;
+    if (running.size + inflight.length >= concurrency) break;
     const job = claimNextJob(registeredTypes());
     if (!job) break;
-    void execute(job);
-    processed += 1;
+    const task = execute(job);
+    inflight.push(task);
   }
-  return processed;
+
+  await Promise.all(inflight);
+  return inflight.length;
 }
 
 export async function execute(job: Job): Promise<void> {

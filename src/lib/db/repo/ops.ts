@@ -80,7 +80,7 @@ export function listTasks(orgId: string, filter: {
   if (filter.leadId) { clauses.push("t.lead_id = ?"); params.push(filter.leadId); }
   if (filter.projectId) { clauses.push("t.project_id = ?"); params.push(filter.projectId); }
   if (filter.dueBefore) { clauses.push("t.due_at IS NOT NULL AND t.due_at <= ?"); params.push(filter.dueBefore); }
-  if (filter.overdue) clauses.push("t.due_at IS NOT NULL AND t.due_at < datetime('now') AND t.status NOT IN ('done','cancelled')");
+  if (filter.overdue) clauses.push("t.due_at IS NOT NULL AND t.due_at < now_iso() AND t.status NOT IN ('done','cancelled')");
   const where = `WHERE ${clauses.join(" AND ")}`;
   const items = all<TaskRow>(
     `SELECT t.*, b.name AS business_name, u.name AS assignee_name FROM tasks t
@@ -160,7 +160,7 @@ export function taskCounts(orgId: string): { open: number; overdue: number; toda
   const row = one<{ open: number; overdue: number; today: number; done: number }>(
     `SELECT
        SUM(CASE WHEN status IN ('open','in_progress') THEN 1 ELSE 0 END) AS open,
-       SUM(CASE WHEN status IN ('open','in_progress') AND due_at IS NOT NULL AND due_at < datetime('now') THEN 1 ELSE 0 END) AS overdue,
+       SUM(CASE WHEN status IN ('open','in_progress') AND due_at IS NOT NULL AND due_at < now_iso() THEN 1 ELSE 0 END) AS overdue,
        SUM(CASE WHEN status IN ('open','in_progress') AND date(due_at) = date('now') THEN 1 ELSE 0 END) AS today,
        SUM(CASE WHEN status = 'done' THEN 1 ELSE 0 END) AS done
      FROM tasks WHERE org_id = ?`,
@@ -888,7 +888,7 @@ export function claimNextJob(types?: JobType[]): Job | null {
   const typeFilter = types?.length ? `AND type IN (${types.map(() => "?").join(",")})` : "";
   const params: unknown[] = types?.length ? [...types] : [];
   const row = one<JobRow>(
-    `SELECT * FROM jobs WHERE status = 'queued' AND scheduled_at <= datetime('now') ${typeFilter}
+    `SELECT * FROM jobs WHERE status = 'queued' AND scheduled_at <= now_iso() ${typeFilter}
      ORDER BY priority ASC, scheduled_at ASC LIMIT 1`,
     params,
   );
