@@ -31,6 +31,8 @@ export interface ApiContext {
   organization: Organization;
   user: User | null;
   query: URLSearchParams;
+  /** Dynamic route segments, e.g. `{ id: "lead_..." }`. */
+  params: Record<string, string>;
 }
 
 export class ApiError extends Error {
@@ -153,6 +155,7 @@ export function route<Body = undefined>(options: RouteOptions<Body>, handler: Ha
         user: session?.user ?? null,
         organization: session?.organization ?? ensureOrganization(),
         query: url.searchParams,
+        params: rawPath ?? {},
       };
       void dynamic;
 

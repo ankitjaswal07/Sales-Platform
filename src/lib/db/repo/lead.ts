@@ -552,14 +552,14 @@ export function leadTimeline(orgId: string, leadId: string, limit = 80): Timelin
     });
   });
 
-  all<{ id: string; title: string; subject: string | null; sent_at: string | null; created_at: string }>(
-    "SELECT id, title, subject, sent_at, created_at FROM proposals WHERE lead_id = ? AND org_id = ?",
+  all<{ id: string; number: string; title: string; sent_at: string | null; created_at: string }>(
+    "SELECT id, number, title, sent_at, created_at FROM proposals WHERE lead_id = ? AND org_id = ?",
     [leadId, orgId],
   ).forEach((row) => {
     events.push({
       id: row.id,
       type: "proposal_created",
-      label: `Proposal generated: ${row.title}`,
+      label: `Proposal ${row.number} generated: ${row.title}`,
       at: row.created_at,
       tone: "brand",
     });
