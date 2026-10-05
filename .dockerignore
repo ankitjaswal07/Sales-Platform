@@ -1,0 +1,19 @@
+# Never ship local state or build output into the image.
+node_modules
+.next
+.git
+.github
+data
+docs
+*.md
+!README.md
+.env
+.env.*
+!.env.example
+coverage
+dist
+build
+out
+tmp
+*.log
+.DS_Store

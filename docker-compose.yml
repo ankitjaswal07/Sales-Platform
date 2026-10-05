@@ -1,0 +1,35 @@
+# LeadForge — single-service deployment with a persistent data volume.
+#
+#   cp .env.example .env.local   # then edit it: AUTH_SECRET, SEED_PASSWORD, optional keys
+#   docker compose up -d --build
+#
+# The app is served on http://localhost:3000. Put a reverse proxy (Caddy, Nginx,
+# Traefik) in front of it for TLS. Everything the platform stores lives in the
+# named volume, so upgrades are `git pull && docker compose up -d --build`.
+services:
+  app:
+    build: .
+    image: leadforge:latest
+    container_name: leadforge
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env.local
+    environment:
+      NODE_ENV: production
+      DATABASE_PATH: data/leadforge.db
+      # Set to "false" only if you process the queue from outside the container.
+      WORKER_ENABLED: "true"
+    volumes:
+      # Database, WAL files and locally stored uploads.
+      - leadforge-data:/app/data
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:3000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 25s
+
+volumes:
+  leadforge-data:
