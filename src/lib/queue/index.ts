@@ -30,7 +30,22 @@ export interface JobContext {
 
 export type JobHandler = (payload: Record<string, unknown>, context: JobContext) => Promise<Record<string, unknown>>;
 
-const handlers = new Map<JobType, JobHandler>();
+/**
+ * Registry of job handlers, keyed on `globalThis`.
+ *
+ * Next compiles `instrumentation.ts` into its own server bundle, so a plain
+ * module-level Map would exist twice in one process: the worker would register
+ * handlers in one copy while route handlers read the other. Keying the registry
+ * (and the in-flight set) on globalThis keeps exactly one queue per process,
+ * the same trick the database handle uses to survive hot reloads.
+ */
+const globalForQueue = globalThis as unknown as {
+  __leadforgeHandlers?: Map<JobType, JobHandler>;
+  __leadforgeRunning?: Set<string>;
+};
+
+const handlers: Map<JobType, JobHandler> = (globalForQueue.__leadforgeHandlers ??= new Map());
+const running: Set<string> = (globalForQueue.__leadforgeRunning ??= new Set());
 
 export function registerHandler(type: JobType, handler: JobHandler): void {
   handlers.set(type, handler);
@@ -72,7 +87,6 @@ export function schedule(input: {
 
 /* ── execution ───────────────────────────────────────────────────────────── */
 
-const running = new Set<string>();
 
 /**
  * Claims up to `max` queued jobs and runs them to completion.

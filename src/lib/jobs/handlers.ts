@@ -17,11 +17,13 @@ import { logger } from "../logger";
  * progress; none of them "complete" work they did not do.
  */
 
-let loaded = false;
+// Keyed on globalThis for the same reason the handler registry is: the
+// instrumentation bundle and the route bundles are separate module instances.
+const globalForHandlers = globalThis as unknown as { __leadforgeHandlersLoaded?: boolean };
 
 export function loadHandlers(): void {
-  if (loaded) return;
-  loaded = true;
+  if (globalForHandlers.__leadforgeHandlersLoaded) return;
+  globalForHandlers.__leadforgeHandlersLoaded = true;
 
   registerHandler("discovery", discoveryHandler);
   registerHandler("audit", auditHandler);

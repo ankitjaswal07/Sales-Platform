@@ -2,7 +2,7 @@
   "name": "leadforge",
   "version": "1.0.0",
   "private": true,
-  "description": "LeadForge — AI-powered website lead generation, prospecting, proposal & sales management platform for web development agencies.",
+  "description": "LeadForge \u2014 AI-powered website lead generation, prospecting, proposal & sales management platform for web development agencies.",
   "engines": {
     "node": ">=20.9.0"
   },
@@ -14,7 +14,9 @@
     "typecheck": "tsc --noEmit",
     "db:reset": "node --experimental-strip-types --conditions=react-server --import ./scripts/register.mjs scripts/db-reset.ts",
     "db:seed": "node --experimental-strip-types --conditions=react-server --import ./scripts/register.mjs scripts/db-seed.ts",
-    "test": "node --experimental-strip-types --conditions=react-server --import ./scripts/register.mjs scripts/run-checks.ts"
+    "test": "node --experimental-strip-types --conditions=react-server --import ./scripts/register.mjs scripts/run-checks.ts",
+    "jobs:tick": "node --experimental-strip-types --conditions=react-server --import ./scripts/register.mjs scripts/jobs-tick.ts",
+    "start:passenger": "node server.js"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
