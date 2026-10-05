@@ -246,6 +246,106 @@ section("Database and repositories");
   }
 }
 
+section("WordPress connector");
+{
+  // Runs after the database section, so a real organisation exists to bind the
+  // single-use token table to (it has a foreign key to organisations).
+  const org = getPrimaryOrganization()!;
+  const { signPayload, verifyLaunchToken } = await import("../src/lib/api/connector.ts");
+
+  const secret = "test-connector-secret-that-is-long-enough";
+  process.env.WORDPRESS_CONNECTOR_SECRET = secret;
+
+  const ts = Math.floor(Date.now() / 1000);
+  const nonce = `check-${Date.now()}`;
+  const signature = signPayload("sso", "alex@northlight.studio", ts, nonce, secret);
+
+  const accepted = verifyLaunchToken({
+    action: "sso",
+    orgId: org.id,
+    email: "alex@northlight.studio",
+    ts,
+    nonce,
+    signature,
+    source: "check",
+  });
+  check("a correctly signed launch is accepted", accepted.ok, accepted.reason ?? "");
+
+  const replayed = verifyLaunchToken({
+    action: "sso",
+    orgId: org.id,
+    email: "alex@northlight.studio",
+    ts,
+    nonce,
+    signature,
+    source: "check",
+  });
+  check("the same launch link cannot be used twice", !replayed.ok && replayed.reason === "replayed", replayed.reason ?? "");
+
+  const tamperedNonce = `${nonce}-tampered`;
+  const tampered = verifyLaunchToken({
+    action: "sso",
+    orgId: org.id,
+    email: "alex@northlight.studio",
+    ts,
+    nonce: tamperedNonce,
+    signature,
+    source: "check",
+  });
+  check("tampering with the payload breaks the signature", !tampered.ok && tampered.reason === "bad_signature", tampered.reason ?? "");
+
+  const staleTs = ts - 600;
+  const stale = verifyLaunchToken({
+    action: "sso",
+    orgId: org.id,
+    email: "alex@northlight.studio",
+    ts: staleTs,
+    nonce: `${nonce}-stale`,
+    signature: signPayload("sso", "alex@northlight.studio", staleTs, `${nonce}-stale`, secret),
+    source: "check",
+  });
+  check("an expired launch link is refused", !stale.ok && stale.reason === "expired", stale.reason ?? "");
+
+  const unsigned = verifyLaunchToken({
+    action: "sso",
+    orgId: org.id,
+    email: "alex@northlight.studio",
+    ts,
+    nonce: `${nonce}-nosig`,
+    signature: null,
+    source: "check",
+  });
+  check("a link with no signature is refused", !unsigned.ok && unsigned.reason === "bad_request", unsigned.reason ?? "");
+
+  // A different secret must not verify: this is what stops someone with only
+  // the WordPress-side value from minting access.
+  const wrongSecret = signPayload("sso", "alex@northlight.studio", ts, `${nonce}-wrong`, "a-completely-different-secret-value");
+  const forged = verifyLaunchToken({
+    action: "sso",
+    orgId: org.id,
+    email: "alex@northlight.studio",
+    ts,
+    nonce: `${nonce}-wrong`,
+    signature: wrongSecret,
+    source: "check",
+  });
+  check("a signature from the wrong secret is refused", !forged.ok && forged.reason === "bad_signature", forged.reason ?? "");
+
+  delete process.env.WORDPRESS_CONNECTOR_SECRET;
+  const off = verifyLaunchToken({
+    action: "sso",
+    orgId: org.id,
+    email: "alex@northlight.studio",
+    ts,
+    nonce: `${nonce}-off`,
+    signature,
+    source: "check",
+  });
+  check("signed sign-in is off until the secret is configured", !off.ok && off.reason === "not_configured", off.reason ?? "");
+  const { connectorState } = await import("../src/lib/api/connector.ts");
+  check("the connector reports its unconfigured state honestly", connectorState().configured === false && Boolean(connectorState().reason));
+}
+
 section("Queue and background jobs");
 {
   const org = getPrimaryOrganization()!;

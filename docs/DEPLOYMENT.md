@@ -276,6 +276,10 @@ Notes:
 PHP, or store its data in the WordPress MySQL database. Those are different
 runtimes.
 
+For the full connector setup — signed one-click sign-in, shortcodes, the
+wp-admin dashboard widget and its troubleshooting table — see
+**[WORDPRESS.md](WORDPRESS.md)**.
+
 ---
 
 ## 6. Option C — Docker (any VPS, or a container platform)
@@ -337,3 +341,6 @@ Being explicit so nobody discovers it in production:
 - [ ] `LOG_LEVEL` is `info` (or `warn`), and logs are being collected.
 - [ ] Retention (`retentionDays`) and data-deletion expectations are agreed with
       whoever owns compliance.
+- [ ] If WordPress is in the picture: `WORDPRESS_CONNECTOR_SECRET` and
+      `APP_URL` are set, and **LeadForge → Settings** in wp-admin reports both
+      connection tests passing (see [WORDPRESS.md](WORDPRESS.md)).

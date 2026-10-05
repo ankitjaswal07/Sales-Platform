@@ -14,6 +14,7 @@ import type { IntegrationDefinition } from "../db/repo/ops";
 
 export type IntegrationCategory =
   | "ai"
+  | "cms"
   | "business_data"
   | "website_intelligence"
   | "email"
@@ -195,6 +196,19 @@ export const INTEGRATION_REGISTRY: RegistryEntry[] = [
     benefit: "Errors are captured with context instead of being lost in server logs. The in-app Diagnostics page always shows local logs regardless.",
   },
   {
+    key: "wordpress",
+    name: "WordPress connector",
+    category: "cms",
+    description: "Launches this workspace from a WordPress site with signed sign-in, and shows live status in wp-admin.",
+    requiredEnv: ["WORDPRESS_CONNECTOR_SECRET"],
+    docsUrl: "/downloads/leadforge-connector-1.0.0.zip",
+    configurable: false,
+    setup:
+      "Set WORDPRESS_CONNECTOR_SECRET to 32+ random characters, then install the LeadForge Connector plugin on the WordPress site (download from this row) and paste the same value into its settings.",
+    benefit:
+      "Your team signs in to LeadForge from wp-admin with one click — no password crosses between the two systems, and each launch link is single-use and expires in 3 minutes.",
+  },
+  {
     key: "redis",
     name: "Redis queue & cache",
     category: "observability",
@@ -262,6 +276,7 @@ export function integrationSummary(): {
 
 export const CATEGORY_LABELS: Record<IntegrationCategory, string> = {
   ai: "Artificial intelligence",
+  cms: "Website builder & CMS",
   business_data: "Business data",
   website_intelligence: "Website intelligence",
   email: "Email",

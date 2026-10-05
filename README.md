@@ -48,6 +48,26 @@ It is a Node.js app, not a WordPress plugin. The usual arrangement is WordPress
 on `example.com` and LeadForge on `app.example.com`, linked from a menu item or
 embedded with an iframe (see the guide).
 
+### Using it with WordPress
+
+The **LeadForge Connector** plugin (in `wordpress-plugin/`, packaged by
+`npm run wp:package`) links a WordPress site to a running workspace:
+
+- signed one-click sign-in from wp-admin — single-use, 3-minute HMAC links, no
+  password ever crossing between the two systems;
+- `[leadforge_link]` and `[leadforge]` shortcodes for buttons and embeds;
+- a dashboard widget showing live workspace status and lead counts;
+- a settings screen that tests the real connection and reports what failed.
+
+It is a bridge, not the app: WordPress cannot execute Node.js, so the workspace
+still needs Node hosting. Full guide, including what is impossible and why:
+**[docs/WORDPRESS.md](docs/WORDPRESS.md)**.
+
+```bash
+npm run wp:package   # → public/downloads/leadforge-connector-1.0.0.zip
+npm run wp:lint      # structural check of the plugin (heuristic; run php -l too)
+```
+
 Health check: `GET /api/health`. Scheduled work on timer-less hosts:
 `POST /api/jobs/tick` with an `x-cron-secret` header.
 
@@ -70,6 +90,8 @@ Health check: `GET /api/health`. Scheduled work on timer-less hosts:
 - **UI** — sign-in, dashboard with *Today's Best Opportunities*, lead list and
   lead detail with working proposal/conversation/re-score actions, plus honest
   in-build screens for the remaining destinations.
+- **WordPress connector** — plugin with signed sign-in, shortcodes, dashboard
+  widget, and the matching signed endpoints in the app.
 
 ## What is not built yet
 

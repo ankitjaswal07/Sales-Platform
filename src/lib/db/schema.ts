@@ -15,7 +15,7 @@
  *  - every tenant-scoped table carries `org_id` (multi-tenancy ready, §48)
  */
 
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 
 export const SCHEMA_SQL = /* sql */ `
 PRAGMA journal_mode = WAL;
@@ -889,6 +889,19 @@ CREATE TABLE IF NOT EXISTS meta (
   key   TEXT PRIMARY KEY,
   value TEXT NOT NULL
 );
+
+-- Single-use launch tokens for signed sign-ins from external systems
+-- (currently the WordPress connector). The primary key gives replay protection:
+-- a second use of the same nonce fails the insert.
+CREATE TABLE IF NOT EXISTS sso_launch_tokens (
+  nonce      TEXT PRIMARY KEY,
+  org_id     TEXT NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+  email      TEXT NOT NULL,
+  source     TEXT NOT NULL DEFAULT 'unknown',
+  created_at TEXT NOT NULL,
+  expires_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_sso_expiry ON sso_launch_tokens(expires_at);
 `;
 
 /** Idempotent additive migrations applied after the base schema. */
